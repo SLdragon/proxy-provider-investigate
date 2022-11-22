@@ -1,13 +1,13 @@
 import "./Graph.css";
 import { useGraph } from "@microsoft/teamsfx-react";
 import { Providers, ProviderState } from '@microsoft/mgt-element';
-import { TeamsFxProvider } from '@microsoft/mgt-teamsfx-provider';
 import { Button } from "@fluentui/react-northstar";
 import { Design } from './Design';
 import { PersonCardFluentUI } from './PersonCardFluentUI';
 import { PersonCardGraphToolkit } from './PersonCardGraphToolkit';
 import { useContext } from "react";
 import { TeamsFxContext } from "../Context";
+import { ProxyProvider } from "@microsoft/mgt-proxy-provider";
 
 export function Graph() {
   const { teamsfx } = useContext(TeamsFxContext);
@@ -16,8 +16,13 @@ export function Graph() {
       // Call graph api directly to get user profile information
       const profile = await graph.api("/me").get();
 
-      // Initialize Graph Toolkit TeamsFx provider
-      const provider = new TeamsFxProvider(teamsfx, scope);
+      const provider = new ProxyProvider('http://localhost:8000/apiproxy', async() => {
+        // This code executes for each call to the proxy to
+        // get any headers that it should add to the request.
+        const ssoToken = await teamsfx.getCredential().getToken("");
+        return { Authorization: `Bearer ${ssoToken?.token}` };
+      });
+
       Providers.globalProvider = provider;
       Providers.globalProvider.setState(ProviderState.SignedIn);
 
